@@ -22,6 +22,13 @@ import static java.util.Collections.singletonList;
  * Created by thijs on 08-06-15.
  */
 public class ScrollingImageView extends View {
+    public static ScrollingImageViewBitmapLoader BITMAP_LOADER = new ScrollingImageViewBitmapLoader() {
+        @Override
+        public Bitmap loadBitmap(Context context, int resourceId) {
+            return BitmapFactory.decodeResource(context.getResources(), resourceId);
+        }
+    };
+
     private List<Bitmap> bitmaps;
     private float speed;
     private int[] scene;
@@ -65,7 +72,7 @@ public class ScrollingImageView extends View {
                             multiplier = Math.max(1, randomness[i]);
                         }
 
-                        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), typedArray.getResourceId(i, 0));
+                        Bitmap bitmap = BITMAP_LOADER.loadBitmap(getContext(), typedArray.getResourceId(i, 0));
                         for (int m = 0; m < multiplier; m++) {
                             bitmaps.add(bitmap);
                         }
@@ -82,7 +89,7 @@ public class ScrollingImageView extends View {
                     typedArray.recycle();
                 }
             } else if (type == TypedValue.TYPE_STRING) {
-                final Bitmap bitmap = BitmapFactory.decodeResource(getResources(), ta.getResourceId(R.styleable.ParallaxView_src, 0));
+                final Bitmap bitmap = BITMAP_LOADER.loadBitmap(getContext(), ta.getResourceId(R.styleable.ParallaxView_src, 0));
                 if (bitmap != null) {
                     bitmaps = singletonList(bitmap);
                     scene = new int[]{0};
@@ -108,29 +115,31 @@ public class ScrollingImageView extends View {
 
     @Override
     public void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        if (canvas == null || bitmaps.isEmpty()) {
-            return;
-        }
+        if(!isInEditMode()) {
+            super.onDraw(canvas);
+            if (canvas == null || bitmaps.isEmpty()) {
+                return;
+            }
 
-        canvas.getClipBounds(clipBounds);
+            canvas.getClipBounds(clipBounds);
 
-        while (offset <= -getBitmap(arrayIndex).getWidth()) {
-            offset += getBitmap(arrayIndex).getWidth();
-            arrayIndex = (arrayIndex + 1) % scene.length;
-        }
+            while (offset <= -getBitmap(arrayIndex).getWidth()) {
+                offset += getBitmap(arrayIndex).getWidth();
+                arrayIndex = (arrayIndex + 1) % scene.length;
+            }
 
-        float left = offset;
-        for (int i = 0; left < clipBounds.width(); i++) {
-            Bitmap bitmap = getBitmap((arrayIndex + i) % scene.length);
-            int width = bitmap.getWidth();
-            canvas.drawBitmap(bitmap, getBitmapLeft(width, left), 0, null);
-            left += width;
-        }
+            float left = offset;
+            for (int i = 0; left < clipBounds.width(); i++) {
+                Bitmap bitmap = getBitmap((arrayIndex + i) % scene.length);
+                int width = bitmap.getWidth();
+                canvas.drawBitmap(bitmap, getBitmapLeft(width, left), 0, null);
+                left += width;
+            }
 
-        if (isStarted && speed != 0) {
-            offset -= abs(speed);
-            postInvalidateOnAnimation();
+            if (isStarted && speed != 0) {
+                offset -= abs(speed);
+                postInvalidateOnAnimation();
+            }
         }
     }
 
